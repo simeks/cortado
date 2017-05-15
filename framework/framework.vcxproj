@@ -166,6 +166,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="cuda.cpp" />
     <ClCompile Include="gpu_volume.cpp" />
     <ClCompile Include="volume.cpp" />
+    <ClCompile Include="vtk.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

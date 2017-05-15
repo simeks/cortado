@@ -26,7 +26,11 @@ public:
         VoxelType_Float,
         VoxelType_Float2,
         VoxelType_Float3,
-        VoxelType_Float4
+        VoxelType_Float4,
+        VoxelType_Double,
+        VoxelType_Double2,
+        VoxelType_Double3,
+        VoxelType_Double4
     };
 
     Volume();
@@ -58,6 +62,9 @@ public:
 
     void* ptr();
     void const* ptr() const;
+
+    uint8_t voxel_type() const;
+    const Dims& size() const;
 
     /// @remark This does not copy the data, use clone if you want a separate copy.
     Volume(const Volume& other);

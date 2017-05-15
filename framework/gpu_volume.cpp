@@ -20,6 +20,14 @@ namespace
             return cudaCreateChannelDesc<float3>();
         case Volume::VoxelType_Float4:
             return cudaCreateChannelDesc<float4>();
+        case Volume::VoxelType_Double:
+            return cudaCreateChannelDesc<double>();
+        case Volume::VoxelType_Double2:
+            return cudaCreateChannelDesc<double2>();
+        case Volume::VoxelType_Double3:
+            return cudaCreateChannelDesc<double3>();
+        case Volume::VoxelType_Double4:
+            return cudaCreateChannelDesc<double4>();
         default:
             assert(false);
         };

@@ -18,6 +18,14 @@ size_t Volume::voxel_size(uint8_t type)
         return sizeof(float)*3;
     case VoxelType_Float4:
         return sizeof(float)*4;
+    case VoxelType_Double:
+        return sizeof(double);
+    case VoxelType_Double2:
+        return sizeof(double) * 2;
+    case VoxelType_Double3:
+        return sizeof(double) * 3;
+    case VoxelType_Double4:
+        return sizeof(double) * 4;
     default:
         assert(false);
     };
@@ -137,6 +145,14 @@ void const* Volume::ptr() const
     assert(_data);
     assert(_data->data.size());
     return _ptr;
+}
+uint8_t Volume::voxel_type() const
+{
+    return _voxel_type;
+}
+const Dims& Volume::size() const
+{
+    return _size;
 }
 Volume::Volume(const Volume& other) :
     _data(other._data),
