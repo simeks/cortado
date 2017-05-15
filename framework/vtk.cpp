@@ -3,10 +3,55 @@
 
 #include <assert.h>
 #include <fstream>
+#include <intrin.h>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
+
+namespace
+{
+    void byteswap_16(uint16_t* p, size_t n)
+    {
+        for (size_t i = 0; i < n; ++i)
+            p[i] = _byteswap_ushort(p[i]);
+    }
+    void byteswap_32(uint32_t* p, size_t n)
+    {
+        for (size_t i = 0; i < n; ++i)
+            p[i] = _byteswap_ulong(p[i]);
+    }
+    void byteswap_64(uint64_t* p, size_t n)
+    {
+        for (size_t i = 0; i < n; ++i)
+            p[i] = _byteswap_uint64(p[i]);
+    }
+
+    void write_big_endian_16(uint16_t* p, size_t n, std::fstream& f)
+    {
+        for (size_t i = 0; i < n; ++i)
+        {
+            uint16_t c = _byteswap_ushort(p[i]);
+            f.write((const char*)&c, 2);
+        }
+    }
+    void write_big_endian_32(uint32_t* p, size_t n, std::fstream& f)
+    {
+        for (size_t i = 0; i < n; ++i)
+        {
+            uint32_t c = _byteswap_ulong(p[i]);
+            f.write((const char*)&c, 4);
+        }
+    }
+    void write_big_endian_64(uint64_t* p, size_t n, std::fstream& f)
+    {
+        for (size_t i = 0; i < n; ++i)
+        {
+            uint64_t c = _byteswap_uint64(p[i]);
+            f.write((const char*)&c, 8);
+        }
+    }
+}
 
 namespace vtk
 {
@@ -55,6 +100,7 @@ namespace vtk
         // Hopefully we wont have files as large as 2^64
         size_t point_data = size_t(~0);
         uint8_t voxel_type = Volume::VoxelType_Unknown;
+        int num_comp = 1;
 
         std::string key;
         std::string value;
@@ -99,7 +145,6 @@ namespace vtk
                 std::string data_type;
                 ss >> data_type;
                 
-                int num_comp = 1;
                 if (!ss.eof())
                 {
                     std::string num_comp_s;
@@ -168,6 +213,18 @@ namespace vtk
         size_t num_bytes = size.width * size.height * size.depth * Volume::voxel_size(voxel_type);
         f.read((char*)vol.ptr(), num_bytes);
         f.close();
+
+        // Switch to little endian
+        size_t bytes_per_elem = Volume::voxel_size(voxel_type) / num_comp;
+        size_t num_values = size.width * size.height * size.depth *  num_comp;
+        if (bytes_per_elem == 8) // double, uint64_t
+            byteswap_64((uint64_t*)vol.ptr(), num_values);
+        if (bytes_per_elem == 4) // float, uint32_t, ...
+            byteswap_32((uint32_t*)vol.ptr(), num_values);
+        if (bytes_per_elem == 2) // short
+            byteswap_16((uint16_t*)vol.ptr(), num_values);
+        
+        // We don't need to do anything for 1 byte elements
     }
 
     void write_volume(const char* file, const Volume& vol)
@@ -239,12 +296,25 @@ namespace vtk
             return;
         };
 
-        f << "SCALARS image_data " << data_type << " " << num_comp << std::endl;
-        f << "LOOKUP_TABLE default" << std::endl;
+        f << "SCALARS image_data " << data_type << " " << num_comp << "\n";
+        f << "LOOKUP_TABLE default\n";
 
         size_t num_bytes = size.width * size.height * size.depth * 
             Volume::voxel_size(vol.voxel_type());
         f.write((const char*)vol.ptr(), num_bytes);
+
+        // Switch to big endian
+        size_t bytes_per_elem = Volume::voxel_size(vol.voxel_type()) / num_comp;
+        size_t num_values = size.width * size.height * size.depth * num_comp;
+
+        if (bytes_per_elem == 8) // double, uint64_t
+            write_big_endian_64((uint64_t*)vol.ptr(), num_values);
+        if (bytes_per_elem == 4) // float, uint32_t, ...
+            write_big_endian_32((uint32_t*)vol.ptr(), num_values);
+        if (bytes_per_elem == 2) // short
+            write_big_endian_16((uint16_t*)vol.ptr(), num_values);
+
+
         f.close();
     }
 }

@@ -5,6 +5,29 @@
 #include "volume.h"
 
 #include <assert.h>
+#include <iostream>
+
+
+namespace
+{
+    typedef void(*ConverterFn)(void*, void*, size_t num);
+
+    template<typename TSrc, typename TDest>
+    void convert_voxels(void* s, void* d, size_t num)
+    {
+        // TODO:
+        // Very rough conversion between voxel formats,
+        // works fine for double <-> float, should suffice for now
+
+        TSrc* src = (TSrc*)s;
+        TDest* dest = (TDest*)d;
+        for (size_t i = 0; i < num; ++i)
+        {
+            if (src[i] > 0.01) std::cout << src[i] << std::endl;
+            dest[i] = TDest(src[i]);
+        }
+    }
+}
 
 size_t Volume::voxel_size(uint8_t type)
 {
@@ -31,16 +54,58 @@ size_t Volume::voxel_size(uint8_t type)
     };
     return 0;
 }
+int Volume::voxel_num_components(uint8_t type)
+{
+    switch (type)
+    {
+    case VoxelType_Float:
+    case VoxelType_Double:
+        return 1;
+    case VoxelType_Float2:
+    case VoxelType_Double2:
+        return 2;
+    case VoxelType_Float3:
+    case VoxelType_Double3:
+        return 3;
+    case VoxelType_Float4:
+    case VoxelType_Double4:
+        return 4;
+    default:
+        assert(false);
+    };
+    return 0;
+}
+uint8_t Volume::voxel_base_type(uint8_t type)
+{
+    switch (type)
+    {
+    case VoxelType_Float:
+    case VoxelType_Float2:
+    case VoxelType_Float3:
+    case VoxelType_Float4:
+        return VoxelType_Float;
+    case VoxelType_Double:
+    case VoxelType_Double2:
+    case VoxelType_Double3:
+    case VoxelType_Double4:
+        return VoxelType_Double;
+    default:
+        assert(false);
+    };
+    return VoxelType_Unknown;
+}
 
-VolumeData::VolumeData()
+VolumeData::VolumeData() : data(nullptr), size(0)
 {
 }
-VolumeData::VolumeData(size_t size)
+VolumeData::VolumeData(size_t size) : size(size)
 {
-    data.resize(size);
+    data = new uint8_t[size];
 }
 VolumeData::~VolumeData()
 {
+    if (data)
+        delete[] data;
 }
 
 Volume::Volume() : _ptr(nullptr)
@@ -50,18 +115,19 @@ Volume::Volume(const Dims& size, uint8_t voxel_type, uint8_t* data) :
     _size(size),
     _voxel_type(voxel_type)
 {
-    assert(voxel_type != VoxelType_Unknown);
-
-    size_t num_bytes = _size.width * _size.height *
-        _size.depth * voxel_size(_voxel_type);
-
-    _data = std::make_shared<VolumeData>(num_bytes);
-    _ptr = _data->data.data();
-
+    allocate(size, voxel_type);
     if (data)
     {
+        size_t num_bytes = _size.width * _size.height *
+            _size.depth * voxel_size(_voxel_type);
+
         memcpy(_ptr, data, num_bytes);
     }
+}
+Volume::Volume(const GpuVolume& gpu_volume)
+{
+    allocate(gpu_volume.size, gpu::voxel_type(gpu_volume));
+    download(gpu_volume);
 }
 Volume::~Volume()
 {
@@ -128,6 +194,36 @@ Volume Volume::clone() const
 
     return copy;
 }
+Volume Volume::as_type(uint8_t type) const
+{
+    if (_voxel_type == type)
+        return *this;
+
+    assert(voxel_num_components(type) == voxel_num_components(_voxel_type));
+
+    Volume dest(_size, type);
+    
+    uint8_t src_type = voxel_base_type(_voxel_type);
+    uint8_t dest_type = voxel_base_type(type);
+
+    size_t num = _size.width * _size.height * _size.depth * voxel_num_components(type);
+    
+    double* me = (double*)_ptr;
+    for (size_t i = 0; i < num; ++i)
+    {
+        if (me[i] > 0.1) std::cout << me[i] << std::endl;
+    }
+
+
+    if (src_type == VoxelType_Float && dest_type == VoxelType_Double)
+        convert_voxels<float, double>(_ptr, dest._ptr, num);
+    if (src_type == VoxelType_Double && dest_type == VoxelType_Float)
+        convert_voxels<double, float>(_ptr, dest._ptr, num);
+    else
+        assert(false);
+
+    return dest;
+}
 bool Volume::valid() const
 {
     return _ptr != nullptr;
@@ -135,15 +231,15 @@ bool Volume::valid() const
 void* Volume::ptr()
 {
     assert(_ptr);
-    assert(_data);
-    assert(_data->data.size());
+    assert(_data->data);
+    assert(_data->size);
     return _ptr;
 }
 void const* Volume::ptr() const
 {
     assert(_ptr);
-    assert(_data);
-    assert(_data->data.size());
+    assert(_data->data);
+    assert(_data->size);
     return _ptr;
 }
 uint8_t Volume::voxel_type() const
@@ -169,4 +265,17 @@ Volume& Volume::operator=(const Volume& other)
     _voxel_type = other._voxel_type;
 
     return *this;
+}
+void Volume::allocate(const Dims& size, uint8_t voxel_type)
+{
+    assert(voxel_type != VoxelType_Unknown);
+
+    _size = size;
+    _voxel_type = voxel_type;
+
+    size_t num_bytes = _size.width * _size.height *
+        _size.depth * voxel_size(_voxel_type);
+
+    _data = std::make_shared<VolumeData>(num_bytes);
+    _ptr = _data->data;
 }

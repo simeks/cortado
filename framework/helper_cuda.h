@@ -990,6 +990,7 @@ void check(T result, char const *const func, const char *const file, int const l
             file, line, static_cast<unsigned int>(result), _cudaGetErrorEnum(result), func);
         DEVICE_RESET
             // Make sure we call CUDA Device Reset before exiting
+            __debugbreak();
             exit(EXIT_FAILURE);
     }
 }

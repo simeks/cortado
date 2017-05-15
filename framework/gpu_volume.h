@@ -20,4 +20,7 @@ namespace gpu
 
     /// Releases a volume allocated with allocate_volume
     void release_volume(GpuVolume& vol);
+
+    /// Returns Volume::VoxelType matching the specified GpuVolume
+    uint8_t voxel_type(const GpuVolume& vol);
 }

@@ -13,7 +13,8 @@ struct VolumeData
     VolumeData(size_t size);
     ~VolumeData();
 
-    std::vector<uint8_t> data;
+    uint8_t* data;
+    size_t size;
 };
 typedef std::shared_ptr<VolumeData> VolumeDataPtr;
 
@@ -35,6 +36,8 @@ public:
 
     Volume();
     Volume(const Dims& size, uint8_t voxel_type, uint8_t* data = nullptr);
+    /// Creates a new volume on the CPU side and downloads the given volume from the gpu into it.
+    Volume(const GpuVolume& gpu_volume);
     ~Volume();
 
     /// Uploads this volume to a newly allocated GPU volume
@@ -57,6 +60,14 @@ public:
     /// Clones this volume
     Volume clone() const;
 
+    /// Attempts to convert this volume to the specified format,
+    ///     If this volume already is of the specified format it will just return itself.
+    ///     If not a copied converted version will be returned.
+    /// Note:
+    ///     You can only convert between volumes with the same number of components per voxel.
+    ///     I.e. you cannot convert from Float3 to Int2.
+    Volume as_type(uint8_t type) const;
+
     /// Returns true if the volume is allocated and ready for use
     bool valid() const;
 
@@ -71,91 +82,17 @@ public:
     Volume& operator=(const Volume& other);
 
     static size_t voxel_size(uint8_t type);
+    static int voxel_num_components(uint8_t type);
+    
+    /// Returns the base type of a type, i.e. Float3 -> Float
+    static uint8_t voxel_base_type(uint8_t type);
+
 private:
+    void allocate(const Dims& size, uint8_t voxel_type);
+
     VolumeDataPtr _data;
     void* _ptr; // Pointer to a location in _data
 
     Dims _size;
     uint8_t _voxel_type;
 };
-
-template<typename T>
-class VolumeTpl
-{
-public:
-
-};
-//
-//class VolumeBase
-//{
-//public:
-//    enum Type
-//    {
-//        Type_Float,
-//        Type_Float1,
-//        Type_Float2,
-//        Type_Float3,
-//        Type_Float4
-//    };
-//
-//    VolumeBase(size_t elem_size);
-//    virtual ~VolumeBase();
-//
-//    void* data();
-//    void const* data() const;
-//
-//protected:
-//    void allocate_volume(const Dims& size);
-//    
-//    void allocate_gpu_volume(const struct cudaChannelFormatDesc& desc, const struct cudaExtent& size);
-//    void release_gpu_volume();
-//
-//    CudaVolume _gpu_vol;
-//
-//    Dims _size;
-//    
-//    const size_t _element_size;
-//    const int _element_count;
-//
-//    std::vector<uint8_t> _data;
-//};
-//
-//template<typename T>
-//class Volume : public VolumeBase
-//{
-//public:
-//    Volume();
-//    Volume(const Dims& size);
-//    ~Volume();
-//
-//    T* data();
-//    T const* data() const;
-//
-//    void allocate_gpu_volume();
-//};
-//
-//template<typename T>
-//Volume<T>::Volume() : VolumeBase(sizeof(T)) {}
-//
-//template<typename T>
-//Volume<T>::Volume(const Dims& size) : VolumeBase(sizeof(T)) { allocate_volume(size); }
-//
-//template<typename T>
-//Volume<T>::~Volume() {}
-//
-//template<typename T>
-//T* Volume<T>::data()
-//{
-//    return (T*)VolumeBase::data();
-//}
-//template<typename T>
-//T const* Volume<T>::data() const
-//{
-//    return (T const*)VolumeBase::data();
-//}
-//
-//template<typename T>
-//void Volume<T>::allocate_gpu_volume()
-//{
-//    VolumeBase::allocate_gpu_volume(cudaCreateChannelDesc<T>(), { _size.width, _size.height, _size.depth });
-//}
