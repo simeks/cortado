@@ -1,73 +1,156 @@
 #include <cuda_runtime.h>
 
+#include "gpu_volume.h"
 #include "helper_cuda.h"
 #include "volume.h"
 
 #include <assert.h>
 
-VolumeBase::VolumeBase(size_t elem_size) : 
-    _element_size(elem_size)
+size_t Volume::voxel_size(uint8_t type)
 {
-    _gpu_vol = { 0 };
-}
-VolumeBase::~VolumeBase()
-{
-    release_gpu_volume();
+    switch (type)
+    {
+    case VoxelType_Float:
+        return sizeof(float);
+    case VoxelType_Float2:
+        return sizeof(float)*2;
+    case VoxelType_Float3:
+        return sizeof(float)*3;
+    case VoxelType_Float4:
+        return sizeof(float)*4;
+    default:
+        assert(false);
+    };
+    return 0;
 }
 
-void VolumeBase::allocate_volume(const Dims& size)
+VolumeData::VolumeData()
 {
-    assert(size.width != 0 && size.width != 0 && size.depth != 0);
-
-    _size = size;
-    _data.resize(_size.width * _size.height * _size.depth * _element_size);
 }
-void VolumeBase::allocate_gpu_volume(
-    const struct cudaChannelFormatDesc& desc,
-    const cudaExtent& size)
+VolumeData::VolumeData(size_t size)
 {
-    assert(_gpu_vol.ptr == nullptr); // Memory should not already be allocated
-
-    checkCudaErrors(cudaMalloc3DArray(&_gpu_vol.ptr, &desc, size, 0));
-    _gpu_vol.size = { size.width, size.height, size.depth };
-    _gpu_vol.format_desc = desc;
+    data.resize(size);
 }
-void VolumeBase::release_gpu_volume()
+VolumeData::~VolumeData()
 {
-    if (_gpu_vol.ptr == nullptr) // not allocated
-        return;
-
-    checkCudaErrors(cudaFreeArray(_gpu_vol.ptr));
-    _gpu_vol.ptr = nullptr;
-    _gpu_vol.size = { 0, 0, 0 };
 }
-void VolumeBase::copy_to_gpu()
+
+Volume::Volume() : _ptr(nullptr)
 {
-    assert(_gpu_vol.ptr != nullptr); // Requires gpu memory to be allocated
+}
+Volume::Volume(const Dims& size, uint8_t voxel_type, uint8_t* data) :
+    _size(size),
+    _voxel_type(voxel_type)
+{
+    assert(voxel_type != VoxelType_Unknown);
+
+    size_t num_bytes = _size.width * _size.height *
+        _size.depth * voxel_size(_voxel_type);
+
+    _data = std::make_shared<VolumeData>(num_bytes);
+    _ptr = _data->data.data();
+
+    if (data)
+    {
+        memcpy(_ptr, data, num_bytes);
+    }
+}
+Volume::~Volume()
+{
+}
+GpuVolume Volume::upload()
+{
+    GpuVolume vol = gpu::allocate_volume(_voxel_type, _size);
+    upload(vol);
+    return vol;
+}
+void Volume::upload(const GpuVolume& gpu_volume)
+{
+    assert(gpu_volume.ptr != nullptr); // Requires gpu memory to be allocated
+    assert(valid()); // Requires cpu memory to be allocated as well
+
+    // We also assume both volumes have same dimensions
+    assert( gpu_volume.size.width == _size.width &&
+            gpu_volume.size.height == _size.height &&
+            gpu_volume.size.depth == _size.depth);
+
+    // TODO: Validate format?
 
     cudaMemcpy3DParms params = { 0 };
-    params.srcPtr = make_cudaPitchedPtr(_data.data(), _size.width * _element_size, _size.width, _size.height);
-    params.dstArray = _gpu_vol.ptr;
-    params.extent = { _gpu_vol.size.width, _gpu_vol.size.height, _gpu_vol.size.depth };
+    params.srcPtr = make_cudaPitchedPtr(_ptr, _size.width * voxel_size(_voxel_type), _size.width, _size.height);
+    params.dstArray = gpu_volume.ptr;
+    params.extent = { gpu_volume.size.width, gpu_volume.size.height, gpu_volume.size.depth };
     params.kind = cudaMemcpyHostToDevice;
     checkCudaErrors(cudaMemcpy3D(&params));
 }
-void VolumeBase::copy_from_gpu()
+void Volume::download(const GpuVolume& gpu_volume)
 {
-    assert(_gpu_vol.ptr != nullptr); // Requires gpu memory to be allocated
+    assert(gpu_volume.ptr != nullptr); // Requires gpu memory to be allocated
+    assert(valid()); // Requires cpu memory to be allocated as well
+
+    // We also assume both volumes have same dimensions
+    assert( gpu_volume.size.width == _size.width &&
+            gpu_volume.size.height == _size.height &&
+            gpu_volume.size.depth == _size.depth);
+
+    // TODO: Validate format?
 
     cudaMemcpy3DParms params = { 0 };
-    params.srcArray = _gpu_vol.ptr;
-    params.dstPtr = make_cudaPitchedPtr(_data.data(), _size.width * _element_size, _size.width, _size.height);
-    params.extent = { _gpu_vol.size.width, _gpu_vol.size.height, _gpu_vol.size.depth };
+    params.srcArray = gpu_volume.ptr;
+    params.dstPtr = make_cudaPitchedPtr(_ptr, _size.width * voxel_size(_voxel_type), _size.width, _size.height);
+    params.extent = { gpu_volume.size.width, gpu_volume.size.height, gpu_volume.size.depth };
     params.kind = cudaMemcpyDeviceToHost;
     checkCudaErrors(cudaMemcpy3D(&params));
 }
-void* VolumeBase::data()
+
+void Volume::release()
 {
-    return _data.data();
+    _data = nullptr;
+    _ptr = nullptr;
+    _size = { 0, 0, 0 };
 }
-void const* VolumeBase::data() const
+Volume Volume::clone() const
 {
-    return _data.data();
+    Volume copy(_size, _voxel_type);
+
+    size_t num_bytes = _size.width * _size.height * 
+        _size.depth * voxel_size(_voxel_type);
+    
+    memcpy(copy._ptr, _ptr, num_bytes);
+
+    return copy;
+}
+bool Volume::valid() const
+{
+    return _ptr != nullptr;
+}
+void* Volume::ptr()
+{
+    assert(_ptr);
+    assert(_data);
+    assert(_data->data.size());
+    return _ptr;
+}
+void const* Volume::ptr() const
+{
+    assert(_ptr);
+    assert(_data);
+    assert(_data->data.size());
+    return _ptr;
+}
+Volume::Volume(const Volume& other) :
+    _data(other._data),
+    _ptr(other._ptr),
+    _size(other._size),
+    _voxel_type(other._voxel_type)
+{
+}
+Volume& Volume::operator=(const Volume& other)
+{
+    _data = other._data;
+    _ptr = other._ptr;
+    _size = other._size;
+    _voxel_type = other._voxel_type;
+
+    return *this;
 }
