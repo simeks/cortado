@@ -29,14 +29,14 @@ namespace
 
 namespace gpu
 {
-    GpuVolume allocate_volume(uint8_t voxel_type, const Dims& size)
+    GpuVolume allocate_volume(uint8_t voxel_type, const Dims& size, uint32_t flags)
     {
         GpuVolume vol = { 0 };
         vol.size = { size.width, size.height, size.depth };
         vol.format_desc = create_format_desc(voxel_type);
 
         checkCudaErrors(cudaMalloc3DArray(&vol.ptr, &vol.format_desc, 
-            { size.width, size.height, size.depth }, 0));
+            { size.width, size.height, size.depth }, flags));
 
         return vol;
     }

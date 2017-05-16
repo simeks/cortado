@@ -55,7 +55,7 @@ namespace
 
 namespace vtk
 {
-    void read_volume(const char* file, Volume& vol)
+    Volume read_volume(const char* file)
     {
         // Spec: http://www.vtk.org/wp-content/uploads/2015/04/file-formats.pdf
 
@@ -86,7 +86,7 @@ namespace vtk
         {
             std::cout << "Invalid format: " << line << std::endl;
             f.close();
-            return;
+            return Volume();
         }
 
         //DATASET STRUCTURED_POINTS
@@ -95,7 +95,7 @@ namespace vtk
         {
             std::cout << "Unexpected dataset: " << line << std::endl;
             f.close();
-            return;
+            return Volume();
         }
 
         Dims size = { 0, 0, 0 };
@@ -173,7 +173,7 @@ namespace vtk
                 {
                     std::cout << "Unsupported data type: " << data_type << " " << num_comp << std::endl;
                     f.close();
-                    return;
+                    return Volume();
                 }
             }
             //LOOKUP_TABLE default
@@ -184,7 +184,7 @@ namespace vtk
                 {
                     std::cout << "Invalid parameter to LOOKUP_TABLE: " << value << std::endl;
                     f.close();
-                    return;
+                    return Volume();
                 }
                 // Assume that blob comes after this line
                 break;
@@ -198,14 +198,14 @@ namespace vtk
                 size.height << ", " <<
                 size.depth << std::endl;
             f.close();
-            return;
+            return Volume();
         }
 
         if (voxel_type == Volume::VoxelType_Unknown)
         {
             std::cout << "Invalid voxel type" << std::endl;
             f.close();
-            return;
+            return Volume();
         }
 
         if (point_data == size_t(~0))
@@ -213,8 +213,9 @@ namespace vtk
             std::cout << "Invalid point_data" << std::endl;
         }
 
+
         // Allocate volume
-        vol = Volume(size, voxel_type);
+        Volume vol(size, voxel_type);
 
         size_t num_bytes = size.width * size.height * size.depth * Volume::voxel_size(voxel_type);
         f.read((char*)vol.ptr(), num_bytes);
@@ -231,6 +232,8 @@ namespace vtk
             byteswap_16((uint16_t*)vol.ptr(), num_values);
         
         // We don't need to do anything for 1 byte elements
+
+        return vol;
     }
 
     void write_volume(const char* file, const Volume& vol)

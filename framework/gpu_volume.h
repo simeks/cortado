@@ -14,9 +14,15 @@ struct GpuVolume
 
 namespace gpu
 {
+    enum Flags
+    {
+        Flag_BindAsSurface = cudaArraySurfaceLoadStore
+    };
+
     /// Allocates a GPU volume of the specified type and size
     /// @param voxel_type : See Volume::VoxelType
-    GpuVolume allocate_volume(uint8_t voxel_type, const Dims& size);
+    GpuVolume allocate_volume(uint8_t voxel_type, const Dims& size, 
+        uint32_t flags = 0);
 
     /// Releases a volume allocated with allocate_volume
     void release_volume(GpuVolume& vol);

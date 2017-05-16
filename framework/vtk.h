@@ -10,7 +10,7 @@ class Volume;
 namespace vtk
 {
     /// Reads a VTK-file and returns a volume with the read data
-    void read_volume(const char* file, Volume& vol);
+    Volume read_volume(const char* file);
 
     /// Writes a given volume to the given file in the VTK format
     void write_volume(const char* file, const Volume& vol);

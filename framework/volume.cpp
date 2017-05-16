@@ -129,13 +129,13 @@ Volume::Volume(const GpuVolume& gpu_volume)
 Volume::~Volume()
 {
 }
-GpuVolume Volume::upload()
+GpuVolume Volume::upload() const
 {
     GpuVolume vol = gpu::allocate_volume(_voxel_type, _size);
     upload(vol);
     return vol;
 }
-void Volume::upload(const GpuVolume& gpu_volume)
+void Volume::upload(const GpuVolume& gpu_volume) const
 {
     assert(gpu_volume.ptr != nullptr); // Requires gpu memory to be allocated
     assert(valid()); // Requires cpu memory to be allocated as well

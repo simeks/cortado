@@ -43,11 +43,11 @@ public:
     /// Uploads this volume to a newly allocated GPU volume
     /// @remark Requires both volumes to be of same size and type
     /// @return Handle to newly created GPU volume
-    GpuVolume upload();
+    GpuVolume upload() const;
 
     /// Uploads this volume to given GPU volume
     /// @remark Requires both volumes to be of same size and type
-    void upload(const GpuVolume& gpu_volume);
+    void upload(const GpuVolume& gpu_volume) const;
 
     /// Downloads the given volume into this volume
     /// @remark Requires both volumes to be of same size and type
