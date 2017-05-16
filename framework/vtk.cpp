@@ -27,7 +27,7 @@ namespace
             p[i] = _byteswap_uint64(p[i]);
     }
 
-    void write_big_endian_16(uint16_t* p, size_t n, std::fstream& f)
+    void write_big_endian_16(uint16_t* p, size_t n, std::ofstream& f)
     {
         for (size_t i = 0; i < n; ++i)
         {
@@ -35,7 +35,7 @@ namespace
             f.write((const char*)&c, 2);
         }
     }
-    void write_big_endian_32(uint32_t* p, size_t n, std::fstream& f)
+    void write_big_endian_32(uint32_t* p, size_t n, std::ofstream& f)
     {
         for (size_t i = 0; i < n; ++i)
         {
@@ -43,7 +43,7 @@ namespace
             f.write((const char*)&c, 4);
         }
     }
-    void write_big_endian_64(uint64_t* p, size_t n, std::fstream& f)
+    void write_big_endian_64(uint64_t* p, size_t n, std::ofstream& f)
     {
         for (size_t i = 0; i < n; ++i)
         {
@@ -85,6 +85,7 @@ namespace vtk
         if (line != "BINARY")
         {
             std::cout << "Invalid format: " << line << std::endl;
+            f.close();
             return;
         }
 
@@ -93,6 +94,7 @@ namespace vtk
         if (line != "DATASET STRUCTURED_POINTS")
         {
             std::cout << "Unexpected dataset: " << line << std::endl;
+            f.close();
             return;
         }
 
@@ -170,6 +172,7 @@ namespace vtk
                 if (voxel_type == Volume::VoxelType_Unknown)
                 {
                     std::cout << "Unsupported data type: " << data_type << " " << num_comp << std::endl;
+                    f.close();
                     return;
                 }
             }
@@ -180,6 +183,7 @@ namespace vtk
                 if (value != "default")
                 {
                     std::cout << "Invalid parameter to LOOKUP_TABLE: " << value << std::endl;
+                    f.close();
                     return;
                 }
                 // Assume that blob comes after this line
@@ -193,12 +197,14 @@ namespace vtk
                 size.width << ", " <<
                 size.height << ", " <<
                 size.depth << std::endl;
+            f.close();
             return;
         }
 
         if (voxel_type == Volume::VoxelType_Unknown)
         {
             std::cout << "Invalid voxel type" << std::endl;
+            f.close();
             return;
         }
 
@@ -299,21 +305,18 @@ namespace vtk
         f << "SCALARS image_data " << data_type << " " << num_comp << "\n";
         f << "LOOKUP_TABLE default\n";
 
-        size_t num_bytes = size.width * size.height * size.depth * 
-            Volume::voxel_size(vol.voxel_type());
-        f.write((const char*)vol.ptr(), num_bytes);
-
         // Switch to big endian
         size_t bytes_per_elem = Volume::voxel_size(vol.voxel_type()) / num_comp;
         size_t num_values = size.width * size.height * size.depth * num_comp;
 
         if (bytes_per_elem == 8) // double, uint64_t
-            write_big_endian_64((uint64_t*)vol.ptr(), num_values);
-        if (bytes_per_elem == 4) // float, uint32_t, ...
-            write_big_endian_32((uint32_t*)vol.ptr(), num_values);
-        if (bytes_per_elem == 2) // short
-            write_big_endian_16((uint16_t*)vol.ptr(), num_values);
-
+            write_big_endian_64((uint64_t*)vol.ptr(), num_values, f);
+        else if (bytes_per_elem == 4) // float, uint32_t, ...
+            write_big_endian_32((uint32_t*)vol.ptr(), num_values, f);
+        else if (bytes_per_elem == 2) // short
+            write_big_endian_16((uint16_t*)vol.ptr(), num_values, f);
+        else
+            f.write((const char*)vol.ptr(), num_values);
 
         f.close();
     }

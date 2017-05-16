@@ -13,18 +13,15 @@ namespace
     typedef void(*ConverterFn)(void*, void*, size_t num);
 
     template<typename TSrc, typename TDest>
-    void convert_voxels(void* s, void* d, size_t num)
+    void convert_voxels(void* src, void* dest, size_t num)
     {
         // TODO:
         // Very rough conversion between voxel formats,
         // works fine for double <-> float, should suffice for now
 
-        TSrc* src = (TSrc*)s;
-        TDest* dest = (TDest*)d;
         for (size_t i = 0; i < num; ++i)
         {
-            if (src[i] > 0.01) std::cout << src[i] << std::endl;
-            dest[i] = TDest(src[i]);
+            ((TDest*)dest)[i] = TDest(((TSrc*)src)[i]);
         }
     }
 }
@@ -207,14 +204,6 @@ Volume Volume::as_type(uint8_t type) const
     uint8_t dest_type = voxel_base_type(type);
 
     size_t num = _size.width * _size.height * _size.depth * voxel_num_components(type);
-    
-    double* me = (double*)_ptr;
-    for (size_t i = 0; i < num; ++i)
-    {
-        if (me[i] > 0.1) std::cout << me[i] << std::endl;
-    }
-
-
     if (src_type == VoxelType_Float && dest_type == VoxelType_Double)
         convert_voxels<float, double>(_ptr, dest._ptr, num);
     if (src_type == VoxelType_Double && dest_type == VoxelType_Float)
