@@ -2,6 +2,7 @@
 
 #include <framework/gpu_volume.h>
 #include <framework/helper_cuda.h>
+#include <framework/profiler.h>
 #include <framework/volume.h>
 
 texture<float, 3, cudaReadModeElementType> volume_in;
@@ -28,12 +29,20 @@ namespace sample
 {
     void copy_volume(const Volume& in, Volume& out)
     {
-        // Allocate memory and upload to GPU
-        GpuVolume gpu_in = in.upload();
-        GpuVolume gpu_out = gpu::allocate_volume(
-            in.voxel_type(),
-            in.size(),
-            gpu::Flag_BindAsSurface);
+        PROFILE_SCOPE("copy_volume");
+
+        GpuVolume gpu_in, gpu_out;
+
+        {
+            PROFILE_SCOPE("alloc_and_upload");
+
+            // Allocate memory and upload to GPU
+            gpu_in = in.upload();
+            gpu_out = gpu::allocate_volume(
+                in.voxel_type(),
+                in.size(),
+                gpu::Flag_BindAsSurface);
+        }
 
         // Bind arrays as textures and surfaces
         checkCudaErrors(cudaBindTextureToArray(volume_in, gpu_in.ptr, gpu_in.format_desc));
