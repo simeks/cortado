@@ -162,6 +162,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="gpu_volume.h" />
     <ClInclude Include="helper_cuda.h" />
     <ClInclude Include="profiler.h" />
+    <ClInclude Include="stb.h" />
     <ClInclude Include="volume.h" />
     <ClInclude Include="vtk.h" />
   </ItemGroup>
@@ -169,6 +170,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="cuda.cpp" />
     <ClCompile Include="profiler.cpp" />
     <ClCompile Include="gpu_volume.cpp" />
+    <ClCompile Include="stb.cpp" />
     <ClCompile Include="volume.cpp" />
     <ClCompile Include="vtk.cpp" />
   </ItemGroup>

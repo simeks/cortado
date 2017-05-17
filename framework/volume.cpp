@@ -46,6 +46,14 @@ size_t Volume::voxel_size(uint8_t type)
         return sizeof(double) * 3;
     case VoxelType_Double4:
         return sizeof(double) * 4;
+    case VoxelType_UChar:
+        return sizeof(uchar1);
+    case VoxelType_UChar2:
+        return sizeof(uchar1) * 2;
+    case VoxelType_UChar3:
+        return sizeof(uchar1) * 3;
+    case VoxelType_UChar4:
+        return sizeof(uchar1) * 4;
     default:
         assert(false);
     };
@@ -57,15 +65,19 @@ int Volume::voxel_num_components(uint8_t type)
     {
     case VoxelType_Float:
     case VoxelType_Double:
+    case VoxelType_UChar:
         return 1;
     case VoxelType_Float2:
     case VoxelType_Double2:
+    case VoxelType_UChar2:
         return 2;
     case VoxelType_Float3:
     case VoxelType_Double3:
+    case VoxelType_UChar3:
         return 3;
     case VoxelType_Float4:
     case VoxelType_Double4:
+    case VoxelType_UChar4:
         return 4;
     default:
         assert(false);
@@ -86,6 +98,11 @@ uint8_t Volume::voxel_base_type(uint8_t type)
     case VoxelType_Double3:
     case VoxelType_Double4:
         return VoxelType_Double;
+    case VoxelType_UChar:
+    case VoxelType_UChar2:
+    case VoxelType_UChar3:
+    case VoxelType_UChar4:
+        return VoxelType_UChar;
     default:
         assert(false);
     };

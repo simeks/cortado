@@ -31,7 +31,11 @@ public:
         VoxelType_Double,
         VoxelType_Double2,
         VoxelType_Double3,
-        VoxelType_Double4
+        VoxelType_Double4,
+        VoxelType_UChar,
+        VoxelType_UChar2,
+        VoxelType_UChar3,
+        VoxelType_UChar4
     };
 
     Volume();

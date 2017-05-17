@@ -20,6 +20,14 @@ namespace
             return cudaCreateChannelDesc<float3>();
         case Volume::VoxelType_Float4:
             return cudaCreateChannelDesc<float4>();
+        case Volume::VoxelType_UChar:
+            return cudaCreateChannelDesc<uchar1>();
+        case Volume::VoxelType_UChar2:
+            return cudaCreateChannelDesc<uchar2>();
+        case Volume::VoxelType_UChar3:
+            return cudaCreateChannelDesc<uchar3>();
+        case Volume::VoxelType_UChar4:
+            return cudaCreateChannelDesc<uchar4>();
         default:
             assert(false);
         };
@@ -51,14 +59,14 @@ namespace gpu
     }
     uint8_t voxel_type(const GpuVolume& vol)
     {
+        int num_comp = 0;
+        if (vol.format_desc.x > 0) ++num_comp;
+        if (vol.format_desc.y > 0) ++num_comp;
+        if (vol.format_desc.z > 0) ++num_comp;
+        if (vol.format_desc.w > 0) ++num_comp;
+        
         if (vol.format_desc.f == cudaChannelFormatKindFloat)
         {
-            int num_comp = 0;
-            if (vol.format_desc.x > 0) ++num_comp;
-            if (vol.format_desc.y > 0) ++num_comp;
-            if (vol.format_desc.z > 0) ++num_comp;
-            if (vol.format_desc.w > 0) ++num_comp;
-        
             if (vol.format_desc.x != 32)
                 assert(false && "Unsupported format");
 
@@ -70,6 +78,19 @@ namespace gpu
 
             return voxel_type;
         }
+        else if (vol.format_desc.f == cudaChannelFormatKindUnsigned)
+        {
+            if (vol.format_desc.x == 8)
+            {
+                uint8_t voxel_type = Volume::VoxelType_Unknown;
+                if (num_comp == 1) voxel_type = Volume::VoxelType_UChar;
+                if (num_comp == 2) voxel_type = Volume::VoxelType_UChar2;
+                if (num_comp == 3) voxel_type = Volume::VoxelType_UChar3;
+                if (num_comp == 4) voxel_type = Volume::VoxelType_UChar4;
+                return voxel_type;
+            }
+        }
+
         assert(false && "Unsupported format");
         return Volume::VoxelType_Unknown;
     }
