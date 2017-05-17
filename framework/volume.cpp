@@ -40,7 +40,7 @@ VolumeData::~VolumeData()
         delete[] data;
 }
 
-Volume::Volume() : _ptr(nullptr)
+Volume::Volume() : _ptr(nullptr), _stride(0)
 {
 }
 Volume::Volume(const Dims& size, uint8_t voxel_type, uint8_t* data) :
@@ -109,12 +109,6 @@ void Volume::download(const GpuVolume& gpu_volume)
     checkCudaErrors(cudaMemcpy3D(&params));
 }
 
-void Volume::release()
-{
-    _data = nullptr;
-    _ptr = nullptr;
-    _size = { 0, 0, 0 };
-}
 Volume Volume::clone() const
 {
     Volume copy(_size, _voxel_type);
@@ -177,6 +171,7 @@ const Dims& Volume::size() const
 Volume::Volume(const Volume& other) :
     _data(other._data),
     _ptr(other._ptr),
+    _stride(other._stride),
     _size(other._size),
     _voxel_type(other._voxel_type)
 {
@@ -185,6 +180,7 @@ Volume& Volume::operator=(const Volume& other)
 {
     _data = other._data;
     _ptr = other._ptr;
+    _stride = other._stride;
     _size = other._size;
     _voxel_type = other._voxel_type;
 
@@ -202,4 +198,12 @@ void Volume::allocate(const Dims& size, uint8_t voxel_type)
 
     _data = std::make_shared<VolumeData>(num_bytes);
     _ptr = _data->data;
+    _stride = voxel::size(_voxel_type) * _size.width;
+}
+void Volume::release()
+{
+    _data = nullptr;
+    _ptr = nullptr;
+    _size = { 0, 0, 0 };
+    _stride = 0;
 }

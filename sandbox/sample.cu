@@ -30,7 +30,7 @@ namespace sample
     void copy_volume(const Volume& in, Volume& out)
     {
         PROFILE_SCOPE("copy_volume");
-
+        
         GpuVolume gpu_in, gpu_out;
 
         {

@@ -1,8 +1,10 @@
 #pragma once
 
+#include <stdint.h>
+
 struct Dims
 {
-    size_t width;
-    size_t height;
-    size_t depth;
+    uint32_t width;
+    uint32_t height;
+    uint32_t depth;
 };

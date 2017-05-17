@@ -58,7 +58,10 @@ public:
     /// Returns true if the volume is allocated and ready for use
     bool valid() const;
 
+    /// Raw pointer to the volume data
     void* ptr();
+
+    /// Raw pointer to the volume data
     void const* ptr() const;
 
     uint8_t voxel_type() const;
@@ -68,11 +71,12 @@ public:
     Volume(const Volume& other);
     Volume& operator=(const Volume& other);
 
-private:
+protected:
     void allocate(const Dims& size, uint8_t voxel_type);
 
     std::shared_ptr<VolumeData> _data;
     void* _ptr; // Pointer to a location in _data
+    size_t _stride; // Size of a single row in bytes
 
     Dims _size;
     uint8_t _voxel_type;

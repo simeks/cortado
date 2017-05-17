@@ -162,6 +162,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="registration_sandbox.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="sample.cu">

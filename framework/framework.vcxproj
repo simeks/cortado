@@ -163,6 +163,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="helper_cuda.h" />
     <ClInclude Include="profiler.h" />
     <ClInclude Include="stb.h" />
+    <ClInclude Include="types.h" />
     <ClInclude Include="volume.h" />
     <ClInclude Include="volume_helper.h" />
     <ClInclude Include="voxel.h" />
