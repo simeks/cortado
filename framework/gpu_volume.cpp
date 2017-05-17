@@ -3,6 +3,7 @@
 #include "gpu_volume.h"
 #include "helper_cuda.h"
 #include "volume.h"
+#include "voxel.h"
 
 #include <assert.h>
 
@@ -12,21 +13,21 @@ namespace
     {
         switch (voxel_type)
         {
-        case Volume::VoxelType_Float:
+        case voxel::Type_Float:
             return cudaCreateChannelDesc<float>();
-        case Volume::VoxelType_Float2:
+        case voxel::Type_Float2:
             return cudaCreateChannelDesc<float2>();
-        case Volume::VoxelType_Float3:
+        case voxel::Type_Float3:
             return cudaCreateChannelDesc<float3>();
-        case Volume::VoxelType_Float4:
+        case voxel::Type_Float4:
             return cudaCreateChannelDesc<float4>();
-        case Volume::VoxelType_UChar:
+        case voxel::Type_UChar:
             return cudaCreateChannelDesc<uchar1>();
-        case Volume::VoxelType_UChar2:
+        case voxel::Type_UChar2:
             return cudaCreateChannelDesc<uchar2>();
-        case Volume::VoxelType_UChar3:
+        case voxel::Type_UChar3:
             return cudaCreateChannelDesc<uchar3>();
-        case Volume::VoxelType_UChar4:
+        case voxel::Type_UChar4:
             return cudaCreateChannelDesc<uchar4>();
         default:
             assert(false);
@@ -70,11 +71,11 @@ namespace gpu
             if (vol.format_desc.x != 32)
                 assert(false && "Unsupported format");
 
-            uint8_t voxel_type = Volume::VoxelType_Unknown;
-            if (num_comp == 1) voxel_type = Volume::VoxelType_Float;
-            if (num_comp == 2) voxel_type = Volume::VoxelType_Float2;
-            if (num_comp == 3) voxel_type = Volume::VoxelType_Float3;
-            if (num_comp == 4) voxel_type = Volume::VoxelType_Float4;
+            uint8_t voxel_type = voxel::Type_Unknown;
+            if (num_comp == 1) voxel_type = voxel::Type_Float;
+            if (num_comp == 2) voxel_type = voxel::Type_Float2;
+            if (num_comp == 3) voxel_type = voxel::Type_Float3;
+            if (num_comp == 4) voxel_type = voxel::Type_Float4;
 
             return voxel_type;
         }
@@ -82,16 +83,16 @@ namespace gpu
         {
             if (vol.format_desc.x == 8)
             {
-                uint8_t voxel_type = Volume::VoxelType_Unknown;
-                if (num_comp == 1) voxel_type = Volume::VoxelType_UChar;
-                if (num_comp == 2) voxel_type = Volume::VoxelType_UChar2;
-                if (num_comp == 3) voxel_type = Volume::VoxelType_UChar3;
-                if (num_comp == 4) voxel_type = Volume::VoxelType_UChar4;
+                uint8_t voxel_type = voxel::Type_Unknown;
+                if (num_comp == 1) voxel_type = voxel::Type_UChar;
+                if (num_comp == 2) voxel_type = voxel::Type_UChar2;
+                if (num_comp == 3) voxel_type = voxel::Type_UChar3;
+                if (num_comp == 4) voxel_type = voxel::Type_UChar4;
                 return voxel_type;
             }
         }
 
         assert(false && "Unsupported format");
-        return Volume::VoxelType_Unknown;
+        return voxel::Type_Unknown;
     }
 }

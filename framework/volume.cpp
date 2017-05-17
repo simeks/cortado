@@ -3,6 +3,7 @@
 #include "gpu_volume.h"
 #include "helper_cuda.h"
 #include "volume.h"
+#include "voxel.h"
 
 #include <assert.h>
 #include <iostream>
@@ -24,89 +25,6 @@ namespace
             ((TDest*)dest)[i] = TDest(((TSrc*)src)[i]);
         }
     }
-}
-
-size_t Volume::voxel_size(uint8_t type)
-{
-    switch (type)
-    {
-    case VoxelType_Float:
-        return sizeof(float);
-    case VoxelType_Float2:
-        return sizeof(float)*2;
-    case VoxelType_Float3:
-        return sizeof(float)*3;
-    case VoxelType_Float4:
-        return sizeof(float)*4;
-    case VoxelType_Double:
-        return sizeof(double);
-    case VoxelType_Double2:
-        return sizeof(double) * 2;
-    case VoxelType_Double3:
-        return sizeof(double) * 3;
-    case VoxelType_Double4:
-        return sizeof(double) * 4;
-    case VoxelType_UChar:
-        return sizeof(uchar1);
-    case VoxelType_UChar2:
-        return sizeof(uchar1) * 2;
-    case VoxelType_UChar3:
-        return sizeof(uchar1) * 3;
-    case VoxelType_UChar4:
-        return sizeof(uchar1) * 4;
-    default:
-        assert(false);
-    };
-    return 0;
-}
-int Volume::voxel_num_components(uint8_t type)
-{
-    switch (type)
-    {
-    case VoxelType_Float:
-    case VoxelType_Double:
-    case VoxelType_UChar:
-        return 1;
-    case VoxelType_Float2:
-    case VoxelType_Double2:
-    case VoxelType_UChar2:
-        return 2;
-    case VoxelType_Float3:
-    case VoxelType_Double3:
-    case VoxelType_UChar3:
-        return 3;
-    case VoxelType_Float4:
-    case VoxelType_Double4:
-    case VoxelType_UChar4:
-        return 4;
-    default:
-        assert(false);
-    };
-    return 0;
-}
-uint8_t Volume::voxel_base_type(uint8_t type)
-{
-    switch (type)
-    {
-    case VoxelType_Float:
-    case VoxelType_Float2:
-    case VoxelType_Float3:
-    case VoxelType_Float4:
-        return VoxelType_Float;
-    case VoxelType_Double:
-    case VoxelType_Double2:
-    case VoxelType_Double3:
-    case VoxelType_Double4:
-        return VoxelType_Double;
-    case VoxelType_UChar:
-    case VoxelType_UChar2:
-    case VoxelType_UChar3:
-    case VoxelType_UChar4:
-        return VoxelType_UChar;
-    default:
-        assert(false);
-    };
-    return VoxelType_Unknown;
 }
 
 VolumeData::VolumeData() : data(nullptr), size(0)
@@ -133,7 +51,7 @@ Volume::Volume(const Dims& size, uint8_t voxel_type, uint8_t* data) :
     if (data)
     {
         size_t num_bytes = _size.width * _size.height *
-            _size.depth * voxel_size(_voxel_type);
+            _size.depth * voxel::size(_voxel_type);
 
         memcpy(_ptr, data, num_bytes);
     }
@@ -165,7 +83,7 @@ void Volume::upload(const GpuVolume& gpu_volume) const
     // TODO: Validate format?
 
     cudaMemcpy3DParms params = { 0 };
-    params.srcPtr = make_cudaPitchedPtr(_ptr, _size.width * voxel_size(_voxel_type), _size.width, _size.height);
+    params.srcPtr = make_cudaPitchedPtr(_ptr, _size.width * voxel::size(_voxel_type), _size.width, _size.height);
     params.dstArray = gpu_volume.ptr;
     params.extent = { gpu_volume.size.width, gpu_volume.size.height, gpu_volume.size.depth };
     params.kind = cudaMemcpyHostToDevice;
@@ -185,7 +103,7 @@ void Volume::download(const GpuVolume& gpu_volume)
 
     cudaMemcpy3DParms params = { 0 };
     params.srcArray = gpu_volume.ptr;
-    params.dstPtr = make_cudaPitchedPtr(_ptr, _size.width * voxel_size(_voxel_type), _size.width, _size.height);
+    params.dstPtr = make_cudaPitchedPtr(_ptr, _size.width * voxel::size(_voxel_type), _size.width, _size.height);
     params.extent = { gpu_volume.size.width, gpu_volume.size.height, gpu_volume.size.depth };
     params.kind = cudaMemcpyDeviceToHost;
     checkCudaErrors(cudaMemcpy3D(&params));
@@ -202,7 +120,7 @@ Volume Volume::clone() const
     Volume copy(_size, _voxel_type);
 
     size_t num_bytes = _size.width * _size.height * 
-        _size.depth * voxel_size(_voxel_type);
+        _size.depth * voxel::size(_voxel_type);
     
     memcpy(copy._ptr, _ptr, num_bytes);
 
@@ -213,17 +131,17 @@ Volume Volume::as_type(uint8_t type) const
     if (_voxel_type == type)
         return *this;
 
-    assert(voxel_num_components(type) == voxel_num_components(_voxel_type));
+    assert(voxel::num_components(type) == voxel::num_components(_voxel_type));
 
     Volume dest(_size, type);
     
-    uint8_t src_type = voxel_base_type(_voxel_type);
-    uint8_t dest_type = voxel_base_type(type);
+    uint8_t src_type = voxel::base_type(_voxel_type);
+    uint8_t dest_type = voxel::base_type(type);
 
-    size_t num = _size.width * _size.height * _size.depth * voxel_num_components(type);
-    if (src_type == VoxelType_Float && dest_type == VoxelType_Double)
+    size_t num = _size.width * _size.height * _size.depth * voxel::num_components(type);
+    if (src_type == voxel::Type_Float && dest_type == voxel::Type_Double)
         convert_voxels<float, double>(_ptr, dest._ptr, num);
-    if (src_type == VoxelType_Double && dest_type == VoxelType_Float)
+    if (src_type == voxel::Type_Double && dest_type == voxel::Type_Float)
         convert_voxels<double, float>(_ptr, dest._ptr, num);
     else
         assert(false);
@@ -274,13 +192,13 @@ Volume& Volume::operator=(const Volume& other)
 }
 void Volume::allocate(const Dims& size, uint8_t voxel_type)
 {
-    assert(voxel_type != VoxelType_Unknown);
+    assert(voxel_type != voxel::Type_Unknown);
 
     _size = size;
     _voxel_type = voxel_type;
 
     size_t num_bytes = _size.width * _size.height *
-        _size.depth * voxel_size(_voxel_type);
+        _size.depth * voxel::size(_voxel_type);
 
     _data = std::make_shared<VolumeData>(num_bytes);
     _ptr = _data->data;

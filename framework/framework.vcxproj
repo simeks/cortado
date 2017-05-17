@@ -164,6 +164,8 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="profiler.h" />
     <ClInclude Include="stb.h" />
     <ClInclude Include="volume.h" />
+    <ClInclude Include="volume_helper.h" />
+    <ClInclude Include="voxel.h" />
     <ClInclude Include="vtk.h" />
   </ItemGroup>
   <ItemGroup>
@@ -172,7 +174,11 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="gpu_volume.cpp" />
     <ClCompile Include="stb.cpp" />
     <ClCompile Include="volume.cpp" />
+    <ClCompile Include="voxel.cpp" />
     <ClCompile Include="vtk.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="volume_helper.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

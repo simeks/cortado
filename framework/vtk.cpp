@@ -101,7 +101,7 @@ namespace vtk
         Dims size = { 0, 0, 0 };
         // Hopefully we wont have files as large as 2^64
         size_t point_data = size_t(~0);
-        uint8_t voxel_type = Volume::VoxelType_Unknown;
+        uint8_t voxel_type = voxel::Type_Unknown;
         int num_comp = 1;
 
         std::string key;
@@ -156,20 +156,20 @@ namespace vtk
 
                 if (data_type == "double")
                 {
-                    if (num_comp == 1) voxel_type = Volume::VoxelType_Double;
-                    if (num_comp == 2) voxel_type = Volume::VoxelType_Double2;
-                    if (num_comp == 3) voxel_type = Volume::VoxelType_Double3;
-                    if (num_comp == 4) voxel_type = Volume::VoxelType_Double4;
+                    if (num_comp == 1) voxel_type = voxel::Type_Double;
+                    if (num_comp == 2) voxel_type = voxel::Type_Double2;
+                    if (num_comp == 3) voxel_type = voxel::Type_Double3;
+                    if (num_comp == 4) voxel_type = voxel::Type_Double4;
                 }
                 else if (data_type == "float")
                 {
-                    if (num_comp == 1) voxel_type = Volume::VoxelType_Float;
-                    if (num_comp == 2) voxel_type = Volume::VoxelType_Float2;
-                    if (num_comp == 3) voxel_type = Volume::VoxelType_Float3;
-                    if (num_comp == 4) voxel_type = Volume::VoxelType_Float4;
+                    if (num_comp == 1) voxel_type = voxel::Type_Float;
+                    if (num_comp == 2) voxel_type = voxel::Type_Float2;
+                    if (num_comp == 3) voxel_type = voxel::Type_Float3;
+                    if (num_comp == 4) voxel_type = voxel::Type_Float4;
                 }
                 
-                if (voxel_type == Volume::VoxelType_Unknown)
+                if (voxel_type == voxel::Type_Unknown)
                 {
                     std::cout << "Unsupported data type: " << data_type << " " << num_comp << std::endl;
                     f.close();
@@ -201,7 +201,7 @@ namespace vtk
             return Volume();
         }
 
-        if (voxel_type == Volume::VoxelType_Unknown)
+        if (voxel_type == voxel::Type_Unknown)
         {
             std::cout << "Invalid voxel type" << std::endl;
             f.close();
@@ -217,12 +217,12 @@ namespace vtk
         // Allocate volume
         Volume vol(size, voxel_type);
 
-        size_t num_bytes = size.width * size.height * size.depth * Volume::voxel_size(voxel_type);
+        size_t num_bytes = size.width * size.height * size.depth * voxel::size(voxel_type);
         f.read((char*)vol.ptr(), num_bytes);
         f.close();
 
         // Switch to little endian
-        size_t bytes_per_elem = Volume::voxel_size(voxel_type) / num_comp;
+        size_t bytes_per_elem = voxel::size(voxel_type) / num_comp;
         size_t num_values = size.width * size.height * size.depth *  num_comp;
         if (bytes_per_elem == 8) // double, uint64_t
             byteswap_64((uint64_t*)vol.ptr(), num_values);
@@ -239,7 +239,7 @@ namespace vtk
     void write_volume(const char* file, const Volume& vol)
     {
         assert(vol.valid());
-        assert(vol.voxel_type() != Volume::VoxelType_Unknown);
+        assert(vol.voxel_type() != voxel::Type_Unknown);
 
         //# vtk DataFile Version 3.0
         //<Title>
@@ -268,35 +268,35 @@ namespace vtk
         int num_comp = 1;
         switch (vol.voxel_type())
         {
-        case Volume::VoxelType_Float:
+        case voxel::Type_Float:
             data_type = "float";
             num_comp = 1;
             break;
-        case Volume::VoxelType_Float2:
+        case voxel::Type_Float2:
             data_type = "float";
             num_comp = 2;
             break;
-        case Volume::VoxelType_Float3:
+        case voxel::Type_Float3:
             data_type = "float";
             num_comp = 3;
             break;
-        case Volume::VoxelType_Float4:
+        case voxel::Type_Float4:
             data_type = "float";
             num_comp = 4;
             break;
-        case Volume::VoxelType_Double:
+        case voxel::Type_Double:
             data_type = "double";
             num_comp = 1;
             break;
-        case Volume::VoxelType_Double2:
+        case voxel::Type_Double2:
             data_type = "double";
             num_comp = 2;
             break;
-        case Volume::VoxelType_Double3:
+        case voxel::Type_Double3:
             data_type = "double";
             num_comp = 3;
             break;
-        case Volume::VoxelType_Double4:
+        case voxel::Type_Double4:
             data_type = "double";
             num_comp = 4;
             break;
@@ -309,7 +309,7 @@ namespace vtk
         f << "LOOKUP_TABLE default\n";
 
         // Switch to big endian
-        size_t bytes_per_elem = Volume::voxel_size(vol.voxel_type()) / num_comp;
+        size_t bytes_per_elem = voxel::size(vol.voxel_type()) / num_comp;
         size_t num_values = size.width * size.height * size.depth * num_comp;
 
         if (bytes_per_elem == 8) // double, uint64_t

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dims.h"
+#include "voxel.h"
 
 #include <memory>
 #include <vector>
@@ -16,28 +17,10 @@ struct VolumeData
     uint8_t* data;
     size_t size;
 };
-typedef std::shared_ptr<VolumeData> VolumeDataPtr;
 
 class Volume
 {
 public:
-    enum VoxelType : uint8_t
-    {
-        VoxelType_Unknown = 0,
-        VoxelType_Float,
-        VoxelType_Float2,
-        VoxelType_Float3,
-        VoxelType_Float4,
-        VoxelType_Double,
-        VoxelType_Double2,
-        VoxelType_Double3,
-        VoxelType_Double4,
-        VoxelType_UChar,
-        VoxelType_UChar2,
-        VoxelType_UChar3,
-        VoxelType_UChar4
-    };
-
     Volume();
     Volume(const Dims& size, uint8_t voxel_type, uint8_t* data = nullptr);
     /// Creates a new volume on the CPU side and downloads the given volume from the gpu into it.
@@ -85,16 +68,10 @@ public:
     Volume(const Volume& other);
     Volume& operator=(const Volume& other);
 
-    static size_t voxel_size(uint8_t type);
-    static int voxel_num_components(uint8_t type);
-    
-    /// Returns the base type of a type, i.e. Float3 -> Float
-    static uint8_t voxel_base_type(uint8_t type);
-
 private:
     void allocate(const Dims& size, uint8_t voxel_type);
 
-    VolumeDataPtr _data;
+    std::shared_ptr<VolumeData> _data;
     void* _ptr; // Pointer to a location in _data
 
     Dims _size;
