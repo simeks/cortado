@@ -12,6 +12,7 @@ namespace sample
 
 void run_registration_sandbox();
 
+
 int main(int argc, char* argv[])
 {
     cuda::init(0);
