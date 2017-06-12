@@ -20,6 +20,7 @@ public:
     void fill(const T& value);
 
     VolumeHelper& operator=(VolumeHelper& other);
+    VolumeHelper& operator=(Volume& other);
 
     const T& operator()(int x, int y, int z) const;
     T& operator()(int x, int y, int z);

@@ -32,12 +32,12 @@ VolumeData::VolumeData() : data(nullptr), size(0)
 }
 VolumeData::VolumeData(size_t size) : size(size)
 {
-    data = new uint8_t[size];
+    data = (uint8_t*)malloc(size);
 }
 VolumeData::~VolumeData()
 {
     if (data)
-        delete[] data;
+        free(data);
 }
 
 Volume::Volume() : _ptr(nullptr), _stride(0)

@@ -1,7 +1,7 @@
 template<typename T>
 VolumeHelper<T>::VolumeHelper(Volume& other) : Volume(other)
 {
-    assert(::voxel_type<T>::type_id == other.voxel_type());
+    assert(!Volume::valid() || ::voxel_type<T>::type_id == other.voxel_type());
 }
 template<typename T>
 VolumeHelper<T>::VolumeHelper(const Dims& size) : Volume(size, ::voxel_type<T>::type_id)
@@ -34,6 +34,13 @@ template<typename T>
 VolumeHelper<T>& VolumeHelper<T>::operator=(VolumeHelper& other)
 {
     assert(voxel_type<T>::type_id == other.voxel_type());
+    Volume::operator=(other);
+    return *this;
+}
+template<typename T>
+VolumeHelper<T>& VolumeHelper<T>::operator=(Volume& other)
+{
+    assert(::voxel_type<T>::type_id == other.voxel_type());
     Volume::operator=(other);
     return *this;
 }
